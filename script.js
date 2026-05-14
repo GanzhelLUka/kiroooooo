@@ -1,29 +1,88 @@
 /* ============================================
    TSURAGI — Brand Website JavaScript
    Forged by Precision. Driven by Spirit.
+   GSAP + Advanced Animations
    ============================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Navigation scroll effect
+    // Register GSAP plugins
+    gsap.registerPlugin(ScrollTrigger);
+
+    // ===================
+    // PRELOADER
+    // ===================
+    const preloader = document.getElementById('preloader');
+    const preloaderPercent = document.querySelector('.preloader-percent');
+    let progress = 0;
+
+    const updatePreloader = () => {
+        if (progress < 100) {
+            progress += Math.random() * 15;
+            if (progress > 100) progress = 100;
+            preloaderPercent.textContent = Math.floor(progress);
+            requestAnimationFrame(updatePreloader);
+        } else {
+            setTimeout(() => {
+                preloader.classList.add('hidden');
+                initAnimations();
+            }, 500);
+        }
+    };
+    updatePreloader();
+
+    // ===================
+    // CUSTOM CURSOR
+    // ===================
+    const cursor = document.getElementById('cursor');
+    const cursorFollower = document.getElementById('cursor-follower');
+    let mouseX = 0, mouseY = 0;
+    let cursorX = 0, cursorY = 0;
+    let followerX = 0, followerY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    const animateCursor = () => {
+        // Main cursor - instant
+        cursorX += (mouseX - cursorX) * 0.5;
+        cursorY += (mouseY - cursorY) * 0.5;
+        cursor.style.left = cursorX + 'px';
+        cursor.style.top = cursorY + 'px';
+
+        // Follower - delayed
+        followerX += (mouseX - followerX) * 0.1;
+        followerY += (mouseY - followerY) * 0.1;
+        cursorFollower.style.left = followerX + 'px';
+        cursorFollower.style.top = followerY + 'px';
+
+        requestAnimationFrame(animateCursor);
+    };
+    animateCursor();
+
+    // Cursor hover effects
+    const hoverElements = document.querySelectorAll('a, button, .model-card, .philosophy-card, .tech-feature');
+    hoverElements.forEach(el => {
+        el.addEventListener('mouseenter', () => cursorFollower.classList.add('hovering'));
+        el.addEventListener('mouseleave', () => cursorFollower.classList.remove('hovering'));
+    });
+
+    // ===================
+    // NAVIGATION
+    // ===================
     const nav = document.getElementById('nav');
-    let lastScroll = 0;
+    const menuBtn = document.getElementById('menuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileLinks = document.querySelectorAll('.mobile-link');
 
     window.addEventListener('scroll', () => {
-        const currentScroll = window.pageYOffset;
-        
-        if (currentScroll > 50) {
+        if (window.scrollY > 50) {
             nav.classList.add('scrolled');
         } else {
             nav.classList.remove('scrolled');
         }
-        
-        lastScroll = currentScroll;
     });
-
-    // Mobile menu toggle
-    const menuBtn = document.getElementById('menuBtn');
-    const mobileMenu = document.getElementById('mobileMenu');
-    const mobileLinks = document.querySelectorAll('.mobile-link');
 
     menuBtn.addEventListener('click', () => {
         menuBtn.classList.toggle('active');
@@ -39,127 +98,265 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Smooth scroll for anchor links
+    // ===================
+    // SMOOTH SCROLL
+    // ===================
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
             if (target) {
                 const navHeight = nav.offsetHeight;
-                const targetPosition = target.offsetTop - navHeight;
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
+                gsap.to(window, {
+                    duration: 1,
+                    scrollTo: { y: target, offsetY: navHeight },
+                    ease: 'power3.inOut'
                 });
             }
         });
     });
 
-    // Intersection Observer for fade-in animations
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1
-    };
+    // ===================
+    // INIT ANIMATIONS
+    // ===================
+    function initAnimations() {
+        // Hero Title Animation
+        const titleLines = document.querySelectorAll('.title-line');
+        titleLines.forEach((line, i) => {
+            gsap.to(line, {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.3 + (i * 0.15),
+                ease: 'power3.out'
+            });
+        });
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
+        // Hero Car Parallax
+        gsap.to('.hero-car-image', {
+            y: 100,
+            scrollTrigger: {
+                trigger: '.hero',
+                start: 'top top',
+                end: 'bottom top',
+                scrub: 1
             }
         });
-    }, observerOptions);
 
-    // Observe elements for animation
-    document.querySelectorAll('.philosophy-card, .model-card, .principle, .location').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
-    });
-
-    // Add visible class styles
-    const style = document.createElement('style');
-    style.textContent = `
-        .visible {
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Hero car animation
-    const carBody = document.querySelector('.car-body');
-    const carLights = document.querySelector('.car-lights');
-    
-    if (carBody && carLights) {
-        // Subtle floating animation
-        let floatY = 0;
-        let floatDirection = 1;
-        
-        function animateCar() {
-            floatY += 0.02 * floatDirection;
+        // Hero Stats Counter
+        document.querySelectorAll('.stat-value').forEach(stat => {
+            const target = parseFloat(stat.dataset.count);
+            const decimal = parseInt(stat.dataset.decimal) || 0;
             
-            if (floatY > 1 || floatY < -1) {
-                floatDirection *= -1;
+            gsap.from(stat, {
+                textContent: 0,
+                duration: 2,
+                delay: 1.5,
+                ease: 'power2.out',
+                snap: { textContent: decimal > 0 ? 0.1 : 1 },
+                onUpdate: function() {
+                    if (decimal > 0) {
+                        stat.textContent = parseFloat(stat.textContent).toFixed(decimal);
+                    }
+                },
+                scrollTrigger: {
+                    trigger: stat,
+                    start: 'top 80%'
+                }
+            });
+        });
+
+        // ===================
+        // MODEL CARDS
+        // ===================
+        document.querySelectorAll('.model-card').forEach((card, i) => {
+            gsap.from(card, {
+                opacity: 0,
+                y: 100,
+                duration: 1,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+
+            // Image reveal on hover
+            const image = card.querySelector('.model-image');
+            card.addEventListener('mouseenter', () => {
+                gsap.to(image, {
+                    scale: 1.05,
+                    duration: 0.8,
+                    ease: 'power2.out'
+                });
+            });
+            card.addEventListener('mouseleave', () => {
+                gsap.to(image, {
+                    scale: 1,
+                    duration: 0.8,
+                    ease: 'power2.out'
+                });
+            });
+        });
+
+        // ===================
+        // PHILOSOPHY CARDS
+        // ===================
+        document.querySelectorAll('.philosophy-card').forEach((card, i) => {
+            gsap.from(card, {
+                opacity: 0,
+                y: 80,
+                duration: 0.8,
+                delay: i * 0.1,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // ===================
+        // TECHNOLOGY FEATURES
+        // ===================
+        document.querySelectorAll('.tech-feature').forEach((feature, i) => {
+            gsap.from(feature, {
+                opacity: 0,
+                x: -50,
+                duration: 0.6,
+                delay: i * 0.1,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: feature,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // Tech Image Parallax
+        gsap.to('.tech-photo', {
+            y: 50,
+            scale: 1.1,
+            scrollTrigger: {
+                trigger: '.tech-image',
+                start: 'top bottom',
+                end: 'bottom top',
+                scrub: 1
             }
-            
-            carBody.style.transform = `translateY(${floatY}px)`;
-            requestAnimationFrame(animateCar);
+        });
+
+        // ===================
+        // ATELIER SECTION
+        // ===================
+        document.querySelectorAll('.principle').forEach((principle, i) => {
+            gsap.from(principle, {
+                opacity: 0,
+                x: -30,
+                duration: 0.5,
+                delay: i * 0.1,
+                ease: 'power2.out',
+                scrollTrigger: {
+                    trigger: principle,
+                    start: 'top 90%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // Production Cap Counter
+        const capNumber = document.querySelector('.cap-number');
+        if (capNumber) {
+            gsap.from(capNumber, {
+                textContent: 0,
+                duration: 2,
+                ease: 'power2.out',
+                snap: { textContent: 1 },
+                scrollTrigger: {
+                    trigger: capNumber,
+                    start: 'top 80%'
+                }
+            });
         }
-        
-        animateCar();
-        
-        // Light pulse effect
-        function pulseLights() {
-            carLights.style.opacity = 0.6 + Math.random() * 0.4;
-            setTimeout(pulseLights, 100 + Math.random() * 200);
-        }
-        
-        pulseLights();
+
+        // ===================
+        // SECTION HEADERS
+        // ===================
+        document.querySelectorAll('.section-header').forEach(header => {
+            gsap.from(header, {
+                opacity: 0,
+                y: 50,
+                duration: 1,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: header,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+
+        // ===================
+        // PARTICLES
+        // ===================
+        createParticles();
     }
 
-    // Technology diagram hover effect
-    const diagramNodes = document.querySelectorAll('.diagram-node');
-    const diagramRings = document.querySelectorAll('.diagram-ring');
-    
-    diagramNodes.forEach(node => {
-        node.addEventListener('mouseenter', () => {
-            diagramRings.forEach(ring => {
-                ring.style.borderColor = 'var(--color-accent)';
-                ring.style.opacity = '0.3';
-            });
-        });
-        
-        node.addEventListener('mouseleave', () => {
-            diagramRings.forEach(ring => {
-                ring.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                ring.style.opacity = '1';
-            });
-        });
-    });
+    // ===================
+    // CREATE PARTICLES
+    // ===================
+    function createParticles() {
+        const container = document.getElementById('particles');
+        if (!container) return;
 
-    // Form submission
+        const particleCount = 50;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.style.cssText = `
+                position: absolute;
+                width: ${Math.random() * 2 + 1}px;
+                height: ${Math.random() * 2 + 1}px;
+                background: rgba(201, 169, 98, ${Math.random() * 0.5 + 0.2});
+                border-radius: 50%;
+                left: ${Math.random() * 100}%;
+                top: ${Math.random() * 100}%;
+                pointer-events: none;
+            `;
+            container.appendChild(particle);
+
+            gsap.to(particle, {
+                y: -window.innerHeight,
+                x: (Math.random() - 0.5) * 200,
+                opacity: 0,
+                duration: Math.random() * 10 + 10,
+                repeat: -1,
+                ease: 'none',
+                delay: Math.random() * 10
+            });
+        }
+    }
+
+    // ===================
+    // FORM HANDLING
+    // ===================
     const contactForm = document.getElementById('contactForm');
-    
     if (contactForm) {
         contactForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
-            const formData = new FormData(contactForm);
-            const data = Object.fromEntries(formData);
-            
-            // Simulate form submission
             const submitBtn = contactForm.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             
             submitBtn.innerHTML = '<span>Sending...</span>';
             submitBtn.disabled = true;
-            
+
             setTimeout(() => {
-                submitBtn.innerHTML = '<span>Message Sent</span> ✓';
+                submitBtn.innerHTML = '<span>Message Sent ✓</span>';
                 submitBtn.style.background = '#4CAF50';
-                
+
                 setTimeout(() => {
                     submitBtn.innerHTML = originalText;
                     submitBtn.style.background = '';
@@ -167,79 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     contactForm.reset();
                 }, 2000);
             }, 1500);
-        });
-    }
-
-    // Model cards hover effect - enhanced
-    const modelCards = document.querySelectorAll('.model-card');
-    
-    modelCards.forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            const silhouette = card.querySelector('.model-silhouette');
-            if (silhouette) {
-                silhouette.style.opacity = '0.7';
-                silhouette.style.transform = 'translateX(-50%) scale(1.02)';
-            }
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            const silhouette = card.querySelector('.model-silhouette');
-            if (silhouette) {
-                silhouette.style.opacity = '0.5';
-                silhouette.style.transform = 'translateX(-50%) scale(1)';
-            }
-        });
-    });
-
-    // Production cap number animation
-    const capNumber = document.querySelector('.cap-number');
-    
-    if (capNumber) {
-        const capObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    let count = 0;
-                    const target = 88;
-                    const duration = 1500;
-                    const increment = target / (duration / 16);
-                    
-                    function updateCount() {
-                        count += increment;
-                        if (count < target) {
-                            capNumber.textContent = Math.floor(count);
-                            requestAnimationFrame(updateCount);
-                        } else {
-                            capNumber.textContent = target;
-                        }
-                    }
-                    
-                    updateCount();
-                    capObserver.unobserve(capNumber);
-                }
-            });
-        }, { threshold: 0.5 });
-        
-        capObserver.observe(capNumber);
-    }
-
-    // Parallax effect for hero section
-    const heroContent = document.querySelector('.hero-content');
-    const heroCar = document.querySelector('.hero-car');
-    
-    if (heroContent && heroCar) {
-        window.addEventListener('scroll', () => {
-            const scrollY = window.pageYOffset;
-            const heroHeight = document.querySelector('.hero').offsetHeight;
-            
-            if (scrollY < heroHeight) {
-                const parallaxValue = scrollY * 0.3;
-                heroContent.style.transform = `translateY(${parallaxValue}px)`;
-                heroContent.style.opacity = 1 - (scrollY / heroHeight) * 0.5;
-                
-                if (window.innerWidth > 1024) {
-                    heroCar.style.transform = `translateY(-50%) translateX(${parallaxValue * 0.5}px)`;
-                }
-            }
         });
     }
 
